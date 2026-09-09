@@ -93,7 +93,7 @@ Return a JSON object with this exact structure:
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model: process.env.OPENROUTER_MODEL || 'google/gemini-3.6-flash',
           max_tokens: 1500,
           response_format: { type: 'json_object' },
           messages: [
@@ -127,7 +127,7 @@ Return a JSON object with this exact structure:
 
   // --- Option 2: Direct Google Gemini SDK Fallback ---
   if (geminiKey && !geminiKey.includes('your_')) {
-    console.log(`[SERVICE] Calling Google Gemini SDK for Stage 1 Product Analysis...`);
+    console.log(`[SERVICE] Calling Google Gemini SDK (Gemini 3) for Stage 1 Product Analysis...`);
     const ai = new GoogleGenerativeAI(geminiKey);
 
     const imageParts = validImages.map(img => ({
@@ -137,7 +137,15 @@ Return a JSON object with this exact structure:
       }
     }));
 
-    const targetModels = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+    const targetModels = [
+      ...new Set([
+        process.env.GEMINI_MODEL,
+        'gemini-3.6-flash',
+        'gemini-3-flash-preview',
+        'gemini-3.7-flash',
+        'gemini-flash-latest'
+      ].filter(Boolean))
+    ];
 
     for (const modelName of targetModels) {
       try {
@@ -241,7 +249,7 @@ Return a JSON object with this EXACT structure:
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model: process.env.OPENROUTER_MODEL || 'google/gemini-3.6-flash',
           max_tokens: 1500,
           response_format: { type: 'json_object' },
           messages: [{ role: 'user', content: promptText }]
@@ -267,9 +275,17 @@ Return a JSON object with this EXACT structure:
 
   // --- Option 2: Direct Google Gemini SDK Fallback ---
   if (geminiKey && !geminiKey.includes('your_')) {
-    console.log(`[SERVICE] Calling Google Gemini SDK for Stage 2 Product Content Generation...`);
+    console.log(`[SERVICE] Calling Google Gemini SDK (Gemini 3) for Stage 2 Product Content Generation...`);
     const ai = new GoogleGenerativeAI(geminiKey);
-    const targetModels = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+    const targetModels = [
+      ...new Set([
+        process.env.GEMINI_MODEL,
+        'gemini-3.6-flash',
+        'gemini-3-flash-preview',
+        'gemini-3.7-flash',
+        'gemini-flash-latest'
+      ].filter(Boolean))
+    ];
 
     for (const modelName of targetModels) {
       try {
@@ -337,7 +353,7 @@ Return a JSON object with this exact structure:
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model: process.env.OPENROUTER_MODEL || 'google/gemini-3.6-flash',
           max_tokens: 1500,
           response_format: { type: 'json_object' },
           messages: [{ role: 'user', content: promptText }]
@@ -357,6 +373,41 @@ Return a JSON object with this exact structure:
       }
     } catch (err) {
       console.warn(`[SERVICE] OpenRouter Phase 5 error:`, err.message);
+    }
+  }
+
+  // --- Option 2: Direct Google Gemini SDK Fallback ---
+  if (geminiKey && !geminiKey.includes('your_')) {
+    console.log(`[SERVICE] Calling Google Gemini SDK (Gemini 3) for Phase 5 Mockup Planning...`);
+    const ai = new GoogleGenerativeAI(geminiKey);
+    const targetModels = [
+      ...new Set([
+        process.env.GEMINI_MODEL,
+        'gemini-3.6-flash',
+        'gemini-3-flash-preview',
+        'gemini-3.7-flash',
+        'gemini-flash-latest'
+      ].filter(Boolean))
+    ];
+
+    for (const modelName of targetModels) {
+      try {
+        const model = ai.getGenerativeModel({
+          model: modelName,
+          generationConfig: {
+            responseMimeType: 'application/json',
+            temperature: 0.4
+          }
+        });
+
+        const result = await model.generateContent([promptText]);
+        const text = result.response.text();
+        const plan = parseJsonResponse(text);
+        console.log(`[SERVICE] Google SDK Phase 5 mockup planning complete via ${modelName}.`);
+        return plan;
+      } catch (sdkErr) {
+        console.warn(`[SERVICE] Google SDK Phase 5 model ${modelName} failed:`, sdkErr.message);
+      }
     }
   }
 
